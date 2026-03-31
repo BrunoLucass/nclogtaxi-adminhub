@@ -38,7 +38,7 @@ export function LoginPage() {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="absolute top-12 left-12 md:left-24 flex items-center gap-4 md:gap-5 min-w-0 isolate"
+          className="absolute top-12 left-12 md:left-24 flex items-center gap-2 md:gap-2.5 min-w-0 isolate"
         >
           <div className="flex shrink-0 items-center justify-center">
             <img
