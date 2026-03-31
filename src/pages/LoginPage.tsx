@@ -60,7 +60,7 @@ export function LoginPage() {
           className="max-w-sm w-full mx-auto"
         >
           <div className="mb-12">
-            <h1 className="text-on-surface font-headline text-4xl font-extrabold tracking-tight">Painel Administrativo</h1>
+            <h1 className="text-on-surface font-headline text-4xl font-extrabold tracking-tight">Hub Administrativo</h1>
             <p className="text-on-surface-variant text-sm mt-2">Gerencie sua central de transporte com segurança.</p>
           </div>
 
@@ -75,7 +75,7 @@ export function LoginPage() {
 
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div className="space-y-2">
-              <label className="text-[10px] font-bold tracking-widest text-muted uppercase ml-1">E-mail Corporativo</label>
+              <label className="text-[10px] font-bold tracking-widest text-muted uppercase ml-1">E-mail</label>
               <input
                 className="w-full h-12 bg-surface-dim text-on-surface px-4 border-b border-transparent focus:border-brand-gold transition-all outline-none rounded-md"
                 placeholder="admin@nclog.com.br"
@@ -90,7 +90,7 @@ export function LoginPage() {
 
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <label className="text-[10px] font-bold tracking-widest text-muted uppercase ml-1">Senha de Acesso</label>
+                <label className="text-[10px] font-bold tracking-widest text-muted uppercase ml-1">Senha</label>
               </div>
               <div className="relative">
                 <input
