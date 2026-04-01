@@ -10,7 +10,6 @@ import { listVouchers } from '@/api/vouchers';
 import { getDailyReport } from '@/api/reports';
 import type { DailyTripReport, Driver, Organization, Trip, Voucher } from '@/types/api';
 import { Sidebar } from '@/components/layout/Sidebar';
-import { TopBar } from '@/components/layout/TopBar';
 import { StatsGrid } from '@/components/dashboard/StatsGrid';
 import { RecentTripsTable } from '@/components/dashboard/RecentTripsTable';
 import { FleetStatus } from '@/components/dashboard/FleetStatus';
@@ -20,6 +19,8 @@ import { RidesTab } from '@/components/tabs/RidesTab';
 import { FinanceTab } from '@/components/tabs/FinanceTab';
 import { VehiclesTab } from '@/components/tabs/VehiclesTab';
 import { SettingsTab } from '@/components/tabs/SettingsTab';
+import { CreateOrganizationModal } from '@/components/modals/CreateOrganizationModal';
+import { CreateTripModal } from '@/components/modals/CreateTripModal';
 
 const MENU_ITEMS = [
   { id: 'dashboard', label: 'Painel Geral', icon: LayoutDashboard },
@@ -32,7 +33,7 @@ const MENU_ITEMS = [
 ] as const;
 
 export function DashboardPage() {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
@@ -44,6 +45,10 @@ export function DashboardPage() {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
 
+  // Quick-action modals accessible from the dashboard panel
+  const [showNewClient, setShowNewClient] = useState(false);
+  const [showNewTrip, setShowNewTrip] = useState(false);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -53,13 +58,16 @@ export function DashboardPage() {
       try {
         if (activeTab === 'dashboard') {
           const date = new Date().toISOString().slice(0, 10);
-          const [rep, tripList, driverList] = await Promise.all([
-            getDailyReport(date),
+          const orgId = user?.organizationId ?? undefined;
+
+          // Fetch report independently — a 400 (org required) must not block trips/drivers
+          const [reportResult, tripList, driverList] = await Promise.all([
+            getDailyReport(date, orgId).catch(() => null),
             listTrips(),
             listDrivers(),
           ]);
           if (!cancelled) {
-            setReport(rep);
+            setReport(reportResult);
             setTrips(tripList);
             setDrivers(driverList);
           }
@@ -92,9 +100,7 @@ export function DashboardPage() {
     }
 
     load();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [activeTab]);
 
   const activeTabLabel = MENU_ITEMS.find((i) => i.id === activeTab)?.label ?? '';
@@ -109,114 +115,124 @@ export function DashboardPage() {
         menuItems={[...MENU_ITEMS]}
         activeTab={activeTab}
         isSidebarCollapsed={isSidebarCollapsed}
+        user={user}
         onTabChange={setActiveTab}
         onToggleCollapse={() => setIsSidebarCollapsed((v) => !v)}
         onLogout={logout}
       />
 
-      {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden relative">
-        {/* Background ambient blobs */}
+        {/* Ambient blobs */}
         <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
           <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-brand-red/5 rounded-full blur-[120px]" />
           <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-brand-gold/5 rounded-full blur-[120px]" />
         </div>
 
-        <TopBar activeTabLabel={activeTabLabel} />
-
-        {/* Scrollable Content */}
-        <main className="flex-1 overflow-y-auto p-8 bg-surface-dim relative">
+        <main className="flex-1 overflow-y-auto bg-surface-dim relative">
           <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent pointer-events-none z-0" />
 
-          {loadError ? (
-            <div className="relative z-10 mb-4 max-w-7xl mx-auto rounded-lg border border-red-500/35 bg-red-500/10 px-4 py-3 text-sm text-red-100">
-              {loadError}
+          {/* Sticky page header */}
+          <div className="sticky top-0 z-20 bg-surface-dim/90 backdrop-blur-md border-b border-white/5 px-8 h-14 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-1.5 h-1.5 rounded-full bg-brand-gold animate-pulse" />
+              <AnimatePresence mode="wait">
+                <motion.h1
+                  key={activeTab}
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  className="text-on-surface font-headline font-extrabold text-base tracking-tight"
+                >
+                  {activeTabLabel}
+                </motion.h1>
+              </AnimatePresence>
             </div>
-          ) : null}
+            {/* Filter portal placeholder */}
+            <div id="page-filters" />
+          </div>
 
-          <AnimatePresence mode="wait">
-            {activeTab === 'dashboard' && (
-              <motion.div
-                key="dashboard"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="max-w-7xl mx-auto space-y-8"
-              >
-                <StatsGrid report={report} drivers={drivers} loading={loading} />
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                  <RecentTripsTable trips={trips} loading={loading} />
-                  <FleetStatus drivers={drivers} trips={trips} />
-                </div>
-              </motion.div>
+          <div className="p-8">
+            {loadError && (
+              <div className="relative z-10 mb-4 max-w-7xl mx-auto rounded-lg border border-red-500/35 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+                {loadError}
+              </div>
             )}
 
-            {activeTab === 'clients' && (
-              <motion.div
-                key="clients"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-              >
-                <ClientsTab organizations={organizations} loading={loading} />
-              </motion.div>
-            )}
+            <AnimatePresence mode="wait">
+              {activeTab === 'dashboard' && (
+                <motion.div
+                  key="dashboard"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="max-w-7xl mx-auto space-y-8"
+                >
+                  <StatsGrid report={report} drivers={drivers} loading={loading} />
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <RecentTripsTable trips={trips} loading={loading} />
+                    <FleetStatus
+                      drivers={drivers}
+                      trips={trips}
+                      onNewClient={() => setShowNewClient(true)}
+                      onNewTrip={() => setShowNewTrip(true)}
+                    />
+                  </div>
+                </motion.div>
+              )}
 
-            {activeTab === 'drivers' && (
-              <motion.div
-                key="drivers"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-              >
-                <DriversTab drivers={drivers} loading={loading} />
-              </motion.div>
-            )}
+              {activeTab === 'clients' && (
+                <motion.div key="clients" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+                  <ClientsTab
+                    organizations={organizations}
+                    loading={loading}
+                    onOrganizationsChange={setOrganizations}
+                  />
+                </motion.div>
+              )}
 
-            {activeTab === 'rides' && (
-              <motion.div
-                key="rides"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-              >
-                <RidesTab trips={trips} loading={loading} />
-              </motion.div>
-            )}
+              {activeTab === 'drivers' && (
+                <motion.div key="drivers" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+                  <DriversTab
+                    drivers={drivers}
+                    loading={loading}
+                    onDriversChange={setDrivers}
+                  />
+                </motion.div>
+              )}
 
-            {activeTab === 'finance' && (
-              <motion.div
-                key="finance"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-              >
-                <FinanceTab vouchers={vouchers} loading={loading} />
-              </motion.div>
-            )}
+              {activeTab === 'rides' && (
+                <motion.div key="rides" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+                  <RidesTab
+                    trips={trips}
+                    loading={loading}
+                    onTripsChange={setTrips}
+                  />
+                </motion.div>
+              )}
 
-            {activeTab === 'vehicles' && (
-              <motion.div
-                key="vehicles"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-              >
-                <VehiclesTab />
-              </motion.div>
-            )}
+              {activeTab === 'finance' && (
+                <motion.div key="finance" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+                  <FinanceTab
+                    vouchers={vouchers}
+                    loading={loading}
+                    onVouchersChange={setVouchers}
+                  />
+                </motion.div>
+              )}
 
-            {activeTab === 'settings' && (
-              <motion.div
-                key="settings"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-              >
-                <SettingsTab />
-              </motion.div>
-            )}
-          </AnimatePresence>
+              {activeTab === 'vehicles' && (
+                <motion.div key="vehicles" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+                  <VehiclesTab />
+                </motion.div>
+              )}
+
+              {activeTab === 'settings' && (
+                <motion.div key="settings" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+                  <SettingsTab />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </main>
       </div>
 
@@ -224,6 +240,18 @@ export function DashboardPage() {
       <div
         className="fixed inset-0 pointer-events-none opacity-[0.02] contrast-150 brightness-100 mix-blend-screen z-50"
         style={{ backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuAUiZCNWeHrecIrQSRmuF1KcEuF7iIqa-CxthWE48VuC9h-BMu7d2cV-Q6d7lqvBZJbfAeb9vnIIfZnWA3IQMZIDwiRwfqFpEGTDOT2U6UeXc2o6D-R7-X7u9gv0QvKRWVdiGf1SZcqtTHsQhgEKaz_qdRgGUajYCyWE9gn9AAyhK7ULIr7BK4hKX2JwbK3GxjtoVHTZTUf9aJ2ufotZ_9L23vqapOCxY2ygnxZ9FoB4SxABkB18f7H-fo34l5nGc8sFE8URbcOydpp')" }}
+      />
+
+      {/* Global quick-action modals (triggered from dashboard panel) */}
+      <CreateOrganizationModal
+        open={showNewClient}
+        onClose={() => setShowNewClient(false)}
+        onCreated={(org) => setOrganizations((prev) => [org, ...prev])}
+      />
+      <CreateTripModal
+        open={showNewTrip}
+        onClose={() => setShowNewTrip(false)}
+        onCreated={(trip) => setTrips((prev) => [trip, ...prev])}
       />
     </motion.div>
   );

@@ -23,6 +23,12 @@ export type Organization = {
   createdAt?: string;
 };
 
+export type CreateOrganizationInput = {
+  name: string;
+  monthlyFeeCents: number;
+  perTripFeeCents: number;
+};
+
 /** GET /drivers */
 export type Driver = {
   id: string;
@@ -31,6 +37,12 @@ export type Driver = {
   isAvailable?: boolean;
   queuePosition?: number;
   [key: string]: unknown;
+};
+
+export type CreateDriverInput = {
+  id: string;
+  name: string;
+  phone?: string;
 };
 
 /** GET /trips */
@@ -45,6 +57,13 @@ export type Trip = {
   createdAt?: string;
   amountCents?: number;
   [key: string]: unknown;
+};
+
+export type CreateTripInput = {
+  passengerName: string;
+  pickupAddress: string;
+  dropoffAddress: string;
+  costCenter?: string;
 };
 
 /** GET /vouchers */

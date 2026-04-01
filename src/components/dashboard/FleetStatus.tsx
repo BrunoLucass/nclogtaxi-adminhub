@@ -5,9 +5,11 @@ import type { Driver, Trip } from '@/types/api';
 type FleetStatusProps = {
   drivers: Driver[];
   trips: Trip[];
+  onNewClient: () => void;
+  onNewTrip: () => void;
 };
 
-export function FleetStatus({ drivers, trips }: FleetStatusProps) {
+export function FleetStatus({ drivers, trips, onNewClient, onNewTrip }: FleetStatusProps) {
   const total = Math.max(drivers.length, 1);
   const freeDrivers = drivers.filter((d) => d.isAvailable).length;
   const tripsInProgress = trips.filter((t) => (t.status ?? '').toLowerCase() === 'in_progress').length;
@@ -26,13 +28,19 @@ export function FleetStatus({ drivers, trips }: FleetStatusProps) {
     <div className="bg-surface-container rounded-2xl border border-muted/20 p-6 shadow-sm">
       <h3 className="text-on-surface font-headline font-extrabold text-lg tracking-tight mb-6">Ações Rápidas</h3>
       <div className="grid grid-cols-2 gap-4 mb-8">
-        <button className="flex flex-col items-center justify-center p-4 bg-white/5 rounded-xl border border-muted/10 hover:border-brand-gold/50 transition-all group">
+        <button
+          onClick={onNewClient}
+          className="flex flex-col items-center justify-center p-4 bg-white/5 rounded-xl border border-muted/10 hover:border-brand-gold/50 transition-all group"
+        >
           <UserPlus className="text-brand-gold mb-2 group-hover:scale-110 transition-transform" size={20} />
           <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Novo Cliente</span>
         </button>
-        <button className="flex flex-col items-center justify-center p-4 bg-white/5 rounded-xl border border-muted/10 hover:border-brand-red/50 transition-all group">
+        <button
+          onClick={onNewTrip}
+          className="flex flex-col items-center justify-center p-4 bg-white/5 rounded-xl border border-muted/10 hover:border-brand-red/50 transition-all group"
+        >
           <Car className="text-brand-red mb-2 group-hover:scale-110 transition-transform" size={20} />
-          <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Novo Veículo</span>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Nova Corrida</span>
         </button>
       </div>
 

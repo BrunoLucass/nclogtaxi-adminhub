@@ -1,6 +1,7 @@
 import { motion } from 'motion/react';
-import { Car, ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
+import { Bell, ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import type { AuthUser } from '@/context/AuthContext';
 
 export type MenuItem = {
   id: string;
@@ -12,6 +13,7 @@ type SidebarProps = {
   menuItems: MenuItem[];
   activeTab: string;
   isSidebarCollapsed: boolean;
+  user: AuthUser | null;
   onTabChange: (id: string) => void;
   onToggleCollapse: () => void;
   onLogout: () => void;
@@ -21,6 +23,7 @@ export function Sidebar({
   menuItems,
   activeTab,
   isSidebarCollapsed,
+  user,
   onTabChange,
   onToggleCollapse,
   onLogout,
@@ -33,32 +36,32 @@ export function Sidebar({
     >
       <div>
         {/* Logo & Toggle */}
-        <div className={`h-16 px-6 flex items-center relative ${isSidebarCollapsed ? 'justify-center' : 'justify-between'}`}>
+        <div className={`h-16 px-4 flex items-center relative ${isSidebarCollapsed ? 'justify-center' : 'justify-between'}`}>
           {!isSidebarCollapsed && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="flex items-center gap-3"
+              className="flex items-center gap-2.5"
             >
-              <div
-                className="w-8 h-8 bg-brand-red flex items-center justify-center shadow-lg shadow-brand-red/20"
-                style={{ clipPath: 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)' }}
-              >
-                <Car className="text-white w-4 h-4" />
-              </div>
+              <img
+                src="/nclog-logo.png"
+                alt="NCLOG"
+                className="h-8 w-auto object-contain mix-blend-lighten"
+                decoding="async"
+              />
               <div className="flex items-center tracking-tight leading-none">
-                <span className="text-on-surface font-headline font-bold text-lg">NCLOG</span>
-                <span className="text-brand-gold font-headline font-bold text-lg ml-1">TÁXI</span>
+                <span className="text-on-surface font-headline font-bold text-base">NCLOG</span>
+                <span className="text-brand-gold font-headline font-bold text-base ml-1">TÁXI</span>
               </div>
             </motion.div>
           )}
           {isSidebarCollapsed && (
-            <div
-              className="w-10 h-10 bg-brand-red flex items-center justify-center shadow-lg shadow-brand-red/20"
-              style={{ clipPath: 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)' }}
-            >
-              <Car className="text-white w-5 h-5" />
-            </div>
+            <img
+              src="/nclog-logo.png"
+              alt="NCLOG"
+              className="h-8 w-auto object-contain mix-blend-lighten"
+              decoding="async"
+            />
           )}
           <button
             onClick={onToggleCollapse}
@@ -108,16 +111,34 @@ export function Sidebar({
         </nav>
       </div>
 
-      {/* User & Logout */}
-      <div className="px-3">
-        <div className="h-px bg-white/5 mb-6 mx-2" />
+      {/* Bell + User + Logout */}
+      <div className="px-3 space-y-3">
+        {/* Notification Bell */}
+        <div className={`flex ${isSidebarCollapsed ? 'justify-center' : 'px-1'}`}>
+          <button className="relative p-2 text-muted hover:text-on-surface transition-colors bg-white/5 rounded-xl border border-white/5 hover:border-muted/20 hover:bg-white/10">
+            <Bell size={18} />
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-brand-red rounded-full border-2 border-surface-container" />
+          </button>
+          {!isSidebarCollapsed && (
+            <motion.span
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="ml-3 self-center text-[11px] font-semibold text-muted uppercase tracking-wide"
+            >
+              Notificações
+            </motion.span>
+          )}
+        </div>
 
+        <div className="h-px bg-white/5 mx-2" />
+
+        {/* User card */}
         <div className={`relative overflow-hidden rounded-2xl p-3 transition-all ${isSidebarCollapsed ? 'flex flex-col items-center gap-4' : 'bg-white/5 backdrop-blur-md border border-white/10 shadow-xl'}`}>
           <div className="flex items-center justify-between relative z-10">
             <div className="flex items-center gap-3">
               <div className="relative">
                 <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-brand-red to-brand-gold flex items-center justify-center text-white font-bold text-xs shadow-inner">
-                  BA
+                  {user?.initials ?? '??'}
                 </div>
                 <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 border-2 border-surface-container rounded-full shadow-sm" />
               </div>
@@ -127,8 +148,8 @@ export function Sidebar({
                   animate={{ opacity: 1 }}
                   className="flex flex-col overflow-hidden"
                 >
-                  <span className="text-on-surface text-[11px] font-semibold truncate">Bruno Almeida</span>
-                  <span className="text-brand-gold/80 text-[8px] font-semibold uppercase tracking-widest truncate">Admin Master</span>
+                  <span className="text-on-surface text-[11px] font-semibold truncate">{user?.name ?? '—'}</span>
+                  <span className="text-brand-gold/80 text-[8px] font-semibold uppercase tracking-widest truncate">{user?.role ?? '—'}</span>
                 </motion.div>
               )}
             </div>

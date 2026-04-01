@@ -1,51 +1,71 @@
-import { Calendar, Filter, MoreVertical, Plus, Search } from 'lucide-react';
+import { useState } from 'react';
+import { Calendar, Filter, MoreVertical, Plus, Search, Trash2 } from 'lucide-react';
 import { formatBRLFromCents } from '@/lib/format';
+import { deleteOrganization } from '@/api/organizations';
+import { CreateOrganizationModal } from '@/components/modals/CreateOrganizationModal';
 import type { Organization } from '@/types/api';
 
 type ClientsTabProps = {
   organizations: Organization[];
   loading: boolean;
+  onOrganizationsChange: (orgs: Organization[]) => void;
 };
 
-export function ClientsTab({ organizations, loading }: ClientsTabProps) {
+export function ClientsTab({ organizations, loading, onOrganizationsChange }: ClientsTabProps) {
+  const [search, setSearch] = useState('');
+  const [showCreate, setShowCreate] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const filtered = organizations.filter((o) =>
+    o.name.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  async function handleDelete(org: Organization) {
+    if (!confirm(`Excluir "${org.name}"? Esta ação não pode ser desfeita.`)) return;
+    setDeletingId(org.id);
+    try {
+      await deleteOrganization(org.id);
+      onOrganizationsChange(organizations.filter((o) => o.id !== org.id));
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   return (
-    <div className="max-w-7xl mx-auto space-y-8">
+    <div className="max-w-7xl mx-auto space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-on-surface font-headline text-3xl font-extrabold tracking-tight">Organizações (clientes)</h1>
+          <h1 className="text-on-surface font-headline text-3xl font-extrabold tracking-tight">Clientes</h1>
           <p className="text-on-surface-variant text-sm mt-1">
-            Dados de <code className="text-brand-gold/90">GET /organizations</code> — empresas contratantes.
+            Organizações contratantes — <code className="text-brand-gold/90">GET /organizations</code>
           </p>
         </div>
-        <button className="bg-brand-red hover:bg-brand-maroon text-white px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest flex items-center gap-2 transition-all shadow-lg shadow-brand-red/20 active:scale-95">
-          <Plus size={18} /> Novo Cliente
+        <button
+          onClick={() => setShowCreate(true)}
+          className="bg-brand-red hover:bg-brand-maroon text-white px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest flex items-center gap-2 transition-all shadow-lg shadow-brand-red/20 active:scale-95"
+        >
+          <Plus size={16} /> Nova Organização
         </button>
       </div>
 
-      {/* Filters & Search */}
+      {/* Search & filters */}
       <div className="bg-surface-container p-4 rounded-2xl border border-muted/20 flex flex-col md:flex-row gap-4 items-center shadow-sm">
         <div className="relative flex-1 w-full">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" size={18} />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" size={16} />
           <input
             type="text"
-            placeholder="Buscar por nome, e-mail ou documento..."
-            className="w-full bg-white/5 border border-muted/10 rounded-xl py-3 pl-12 pr-4 text-sm text-on-surface focus:border-brand-gold/50 outline-none transition-all"
+            placeholder="Buscar por nome..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full bg-white/5 border border-muted/10 rounded-xl py-3 pl-11 pr-4 text-sm text-on-surface focus:border-brand-gold/50 outline-none transition-all"
           />
         </div>
-        <div className="flex items-center gap-2 w-full md:w-auto">
-          <button className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-white/5 border border-muted/10 px-4 py-3 rounded-xl text-xs font-bold text-on-surface-variant hover:text-on-surface hover:border-muted/30 transition-all">
-            <Filter size={16} /> Filtros
-          </button>
-          <select className="flex-1 md:flex-none bg-white/5 border border-muted/10 px-4 py-3 rounded-xl text-xs font-bold text-on-surface-variant outline-none cursor-pointer hover:border-muted/30 transition-all">
-            <option>Todos os Status</option>
-            <option>Ativos</option>
-            <option>Inativos</option>
-            <option>Bloqueados</option>
-          </select>
-        </div>
+        <button className="flex items-center justify-center gap-2 bg-white/5 border border-muted/10 px-4 py-3 rounded-xl text-xs font-bold text-on-surface-variant hover:text-on-surface hover:border-muted/30 transition-all">
+          <Filter size={14} /> Filtros
+        </button>
       </div>
 
-      {/* Clients Table */}
+      {/* Table */}
       <div className="bg-surface-container rounded-2xl border border-muted/20 overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
@@ -60,23 +80,21 @@ export function ClientsTab({ organizations, loading }: ClientsTabProps) {
               </tr>
             </thead>
             <tbody className="divide-y divide-muted/10">
-              {organizations.length === 0 && !loading ? (
+              {filtered.length === 0 && !loading ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-10 text-center text-muted text-sm">
-                    Nenhuma organização retornada (verifique permissão admin).
+                    {search ? 'Nenhuma organização encontrada.' : 'Nenhuma organização cadastrada.'}
                   </td>
                 </tr>
               ) : null}
-              {organizations.map((org) => (
+              {filtered.map((org) => (
                 <tr key={org.id} className="hover:bg-white/5 transition-colors group">
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl bg-brand-red/10 flex items-center justify-center text-brand-red font-bold text-xs border border-brand-red/20 group-hover:scale-105 transition-transform">
                         {org.name.substring(0, 2).toUpperCase()}
                       </div>
-                      <div className="flex flex-col">
-                        <span className="text-on-surface text-sm font-bold">{org.name}</span>
-                      </div>
+                      <span className="text-on-surface text-sm font-bold">{org.name}</span>
                     </div>
                   </td>
                   <td className="px-6 py-5 text-on-surface text-sm font-mono">
@@ -95,8 +113,13 @@ export function ClientsTab({ organizations, loading }: ClientsTabProps) {
                     </div>
                   </td>
                   <td className="px-6 py-5 text-right">
-                    <button className="p-2 text-muted hover:text-brand-gold transition-colors hover:bg-white/5 rounded-lg">
-                      <MoreVertical size={18} />
+                    <button
+                      onClick={() => handleDelete(org)}
+                      disabled={deletingId === org.id}
+                      className="p-2 text-muted hover:text-brand-red transition-colors hover:bg-brand-red/10 rounded-lg disabled:opacity-50"
+                      title="Excluir"
+                    >
+                      {deletingId === org.id ? <MoreVertical size={16} className="animate-spin" /> : <Trash2 size={16} />}
                     </button>
                   </td>
                 </tr>
@@ -104,16 +127,16 @@ export function ClientsTab({ organizations, loading }: ClientsTabProps) {
             </tbody>
           </table>
         </div>
-        <div className="p-6 bg-white/5 border-t border-muted/20 flex justify-between items-center">
-          <span className="text-muted text-xs font-medium">
-            {organizations.length} organização(ões)
-          </span>
-          <div className="flex gap-2">
-            <button className="px-4 py-2 bg-white/5 border border-muted/10 rounded-lg text-xs font-bold text-muted hover:text-on-surface transition-all">Anterior</button>
-            <button className="px-4 py-2 bg-brand-red text-white rounded-lg text-xs font-bold shadow-lg shadow-brand-red/20 active:scale-95 transition-all">Próximo</button>
-          </div>
+        <div className="p-4 bg-white/5 border-t border-muted/20">
+          <span className="text-muted text-xs">{filtered.length} organização(ões)</span>
         </div>
       </div>
+
+      <CreateOrganizationModal
+        open={showCreate}
+        onClose={() => setShowCreate(false)}
+        onCreated={(org) => onOrganizationsChange([org, ...organizations])}
+      />
     </div>
   );
 }

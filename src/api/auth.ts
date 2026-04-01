@@ -63,12 +63,13 @@ export async function login(email: string, password: string): Promise<LoginResul
     return {ok: false, message, details};
   }
 
-  const data = (await res.json()) as LoginResponse;
-  if (!data.access_token) {
-    return {ok: false, message: 'Resposta inválida: access_token ausente.'};
+  const data = (await res.json()) as LoginResponse & { accessToken?: string };
+  const token = data.access_token || data.accessToken;
+  if (!token) {
+    return {ok: false, message: 'Resposta inválida: token ausente.'};
   }
 
-  setToken(data.access_token);
+  setToken(token);
   return {ok: true};
 }
 
