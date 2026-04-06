@@ -12,12 +12,15 @@ import {setOnUnauthorized} from '@/api/client';
 import {clearToken, getToken} from '@/lib/auth-storage';
 import {decodeJwtPayload, type JwtUser} from '@/lib/jwt';
 
+export type UserRole = 'admin' | 'requester' | 'driver' | 'client_manager';
+
 export type AuthUser = {
   id: string;
   email: string;
   name: string;
   initials: string;
-  role: string;
+  role: UserRole;
+  roleLabel: string;
   organizationId: string | null;
 };
 
@@ -48,10 +51,10 @@ function buildUser(token: string): AuthUser | null {
     .map((n: string) => n[0].toUpperCase())
     .join('');
 
-  const appRole = payload.app_metadata?.role ?? 'user';
+  const appRole = (payload.app_metadata?.role ?? 'requester') as UserRole;
   const organizationId = payload.app_metadata?.organization_id ?? null;
 
-  const roleLabels: Record<string, string> = {
+  const roleLabels: Record<UserRole, string> = {
     admin: 'Admin',
     requester: 'Solicitante',
     driver: 'Motorista',
@@ -63,7 +66,8 @@ function buildUser(token: string): AuthUser | null {
     email,
     name,
     initials: initials || '??',
-    role: roleLabels[appRole] ?? appRole,
+    role: appRole,
+    roleLabel: roleLabels[appRole] ?? appRole,
     organizationId,
   };
 }

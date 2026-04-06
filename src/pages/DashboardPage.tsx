@@ -61,14 +61,14 @@ export function DashboardPage() {
           const orgId = user?.organizationId ?? undefined;
 
           // Fetch report independently — a 400 (org required) must not block trips/drivers
-          const [reportResult, tripList, driverList] = await Promise.all([
+          const [reportResult, tripRes, driverList] = await Promise.all([
             getDailyReport(date, orgId).catch(() => null),
-            listTrips(),
+            listTrips({ limit: 20 }),
             listDrivers(),
           ]);
           if (!cancelled) {
             setReport(reportResult);
-            setTrips(tripList);
+            setTrips(tripRes.data);
             setDrivers(driverList);
           }
         } else if (activeTab === 'clients') {
@@ -78,11 +78,11 @@ export function DashboardPage() {
           const d = await listDrivers();
           if (!cancelled) setDrivers(d);
         } else if (activeTab === 'rides') {
-          const t = await listTrips();
-          if (!cancelled) setTrips(t);
+          const res = await listTrips();
+          if (!cancelled) setTrips(res.data);
         } else if (activeTab === 'finance') {
-          const v = await listVouchers();
-          if (!cancelled) setVouchers(v);
+          const vRes = await listVouchers();
+          if (!cancelled) setVouchers(vRes.data);
         }
       } catch (e) {
         if (!cancelled) {

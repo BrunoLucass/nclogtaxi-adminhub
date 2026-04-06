@@ -1,30 +1,13 @@
-import { motion, AnimatePresence } from 'motion/react';
-import { AuthProvider, useAuth } from '@/context/AuthContext';
-import { LoginPage } from '@/pages/LoginPage';
-import { DashboardPage } from '@/pages/DashboardPage';
-
-function AppRoutes() {
-  const { isAuthenticated } = useAuth();
-
-  return (
-    <AnimatePresence mode="wait">
-      {isAuthenticated ? (
-        <motion.div key="dashboard" className="w-full h-full">
-          <DashboardPage />
-        </motion.div>
-      ) : (
-        <motion.div key="login" className="w-full h-full">
-          <LoginPage />
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
-}
+import { BrowserRouter } from 'react-router-dom';
+import { AuthProvider } from '@/context/AuthContext';
+import { AppRouter } from '@/router';
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppRoutes />
-    </AuthProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <AppRouter />
+      </AuthProvider>
+    </BrowserRouter>
   );
 }

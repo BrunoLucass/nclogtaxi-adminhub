@@ -1,9 +1,21 @@
 import { useState } from 'react';
-import { Calendar, Filter, MoreVertical, Plus, Search, Trash2 } from 'lucide-react';
+import { Calendar, ChevronDown, MoreVertical, Plus, Search, Trash2 } from 'lucide-react';
 import { formatBRLFromCents } from '@/lib/format';
-import { deleteOrganization } from '@/api/organizations';
+import { deleteOrganization, updateOrganizationStatus } from '@/api/organizations';
 import { CreateOrganizationModal } from '@/components/modals/CreateOrganizationModal';
-import type { Organization } from '@/types/api';
+import type { Organization, OrganizationStatus } from '@/types/api';
+
+const STATUS_STYLE: Record<OrganizationStatus, string> = {
+  active: 'bg-green-400/15 text-green-400',
+  suspended: 'bg-brand-gold/15 text-brand-gold',
+  delinquent: 'bg-red-400/15 text-red-400',
+};
+
+const STATUS_LABEL: Record<OrganizationStatus, string> = {
+  active: 'Ativa',
+  suspended: 'Suspensa',
+  delinquent: 'Inadimplente',
+};
 
 type ClientsTabProps = {
   organizations: Organization[];
@@ -15,6 +27,8 @@ export function ClientsTab({ organizations, loading, onOrganizationsChange }: Cl
   const [search, setSearch] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
+  const [openStatusMenu, setOpenStatusMenu] = useState<string | null>(null);
 
   const filtered = organizations.filter((o) =>
     o.name.toLowerCase().includes(search.toLowerCase()),
@@ -31,8 +45,24 @@ export function ClientsTab({ organizations, loading, onOrganizationsChange }: Cl
     }
   }
 
+  async function handleStatusChange(org: Organization, status: OrganizationStatus) {
+    setOpenStatusMenu(null);
+    setStatusUpdatingId(org.id);
+    try {
+      const updated = await updateOrganizationStatus(org.id, status);
+      onOrganizationsChange(organizations.map((o) => (o.id === org.id ? { ...o, ...updated } : o)));
+    } finally {
+      setStatusUpdatingId(null);
+    }
+  }
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
+      {/* Click away to close status dropdown */}
+      {openStatusMenu && (
+        <div className="fixed inset-0 z-10" onClick={() => setOpenStatusMenu(null)} />
+      )}
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-on-surface font-headline text-3xl font-extrabold tracking-tight">Clientes</h1>
@@ -48,9 +78,9 @@ export function ClientsTab({ organizations, loading, onOrganizationsChange }: Cl
         </button>
       </div>
 
-      {/* Search & filters */}
-      <div className="bg-surface-container p-4 rounded-2xl border border-muted/20 flex flex-col md:flex-row gap-4 items-center shadow-sm">
-        <div className="relative flex-1 w-full">
+      {/* Search */}
+      <div className="bg-surface-container p-4 rounded-2xl border border-muted/20 flex gap-4 shadow-sm">
+        <div className="relative flex-1">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" size={16} />
           <input
             type="text"
@@ -60,9 +90,6 @@ export function ClientsTab({ organizations, loading, onOrganizationsChange }: Cl
             className="w-full bg-white/5 border border-muted/10 rounded-xl py-3 pl-11 pr-4 text-sm text-on-surface focus:border-brand-gold/50 outline-none transition-all"
           />
         </div>
-        <button className="flex items-center justify-center gap-2 bg-white/5 border border-muted/10 px-4 py-3 rounded-xl text-xs font-bold text-on-surface-variant hover:text-on-surface hover:border-muted/30 transition-all">
-          <Filter size={14} /> Filtros
-        </button>
       </div>
 
       {/* Table */}
@@ -74,7 +101,7 @@ export function ClientsTab({ organizations, loading, onOrganizationsChange }: Cl
                 <th className="px-6 py-5">Organização</th>
                 <th className="px-6 py-5">Mensalidade</th>
                 <th className="px-6 py-5">Taxa / corrida</th>
-                <th className="px-6 py-5">ID</th>
+                <th className="px-6 py-5">Status</th>
                 <th className="px-6 py-5">Cadastro</th>
                 <th className="px-6 py-5 text-right">Ações</th>
               </tr>
@@ -87,43 +114,71 @@ export function ClientsTab({ organizations, loading, onOrganizationsChange }: Cl
                   </td>
                 </tr>
               ) : null}
-              {filtered.map((org) => (
-                <tr key={org.id} className="hover:bg-white/5 transition-colors group">
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-brand-red/10 flex items-center justify-center text-brand-red font-bold text-xs border border-brand-red/20 group-hover:scale-105 transition-transform">
-                        {org.name.substring(0, 2).toUpperCase()}
+              {filtered.map((org) => {
+                const status = org.status ?? 'active';
+                return (
+                  <tr key={org.id} className="hover:bg-white/5 transition-colors group">
+                    <td className="px-6 py-5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-brand-red/10 flex items-center justify-center text-brand-red font-bold text-xs border border-brand-red/20 group-hover:scale-105 transition-transform">
+                          {org.name.substring(0, 2).toUpperCase()}
+                        </div>
+                        <div>
+                          <span className="text-on-surface text-sm font-bold block">{org.name}</span>
+                          <span className="text-[9px] text-muted font-mono">{org.id.slice(0, 8)}…</span>
+                        </div>
                       </div>
-                      <span className="text-on-surface text-sm font-bold">{org.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-5 text-on-surface text-sm font-mono">
-                    {formatBRLFromCents(org.monthlyFeeCents)}
-                  </td>
-                  <td className="px-6 py-5 text-on-surface text-sm font-mono">
-                    {formatBRLFromCents(org.perTripFeeCents)}
-                  </td>
-                  <td className="px-6 py-5 text-[10px] text-muted font-mono truncate max-w-[120px]" title={org.id}>
-                    {org.id}
-                  </td>
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-2 text-[11px] text-on-surface-variant">
-                      <Calendar size={12} className="text-muted" />
-                      {org.createdAt ? new Date(org.createdAt).toLocaleDateString('pt-BR') : '—'}
-                    </div>
-                  </td>
-                  <td className="px-6 py-5 text-right">
-                    <button
-                      onClick={() => handleDelete(org)}
-                      disabled={deletingId === org.id}
-                      className="p-2 text-muted hover:text-brand-red transition-colors hover:bg-brand-red/10 rounded-lg disabled:opacity-50"
-                      title="Excluir"
-                    >
-                      {deletingId === org.id ? <MoreVertical size={16} className="animate-spin" /> : <Trash2 size={16} />}
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-6 py-5 text-on-surface text-sm font-mono">
+                      {formatBRLFromCents(org.monthlyFeeCents)}
+                    </td>
+                    <td className="px-6 py-5 text-on-surface text-sm font-mono">
+                      {formatBRLFromCents(org.perTripFeeCents)}
+                    </td>
+                    <td className="px-6 py-5 relative">
+                      <div className="relative z-20">
+                        <button
+                          onClick={() => setOpenStatusMenu(openStatusMenu === org.id ? null : org.id)}
+                          disabled={statusUpdatingId === org.id}
+                          className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase flex items-center gap-1 transition-all ${STATUS_STYLE[status as OrganizationStatus] ?? 'bg-muted/15 text-muted'} hover:opacity-80 disabled:opacity-50`}
+                        >
+                          {statusUpdatingId === org.id ? '…' : STATUS_LABEL[status as OrganizationStatus] ?? status}
+                          <ChevronDown size={10} />
+                        </button>
+                        {openStatusMenu === org.id && (
+                          <div className="absolute left-0 top-full mt-1 bg-surface-elevated border border-muted/20 rounded-xl shadow-xl z-30 py-1 min-w-[140px]">
+                            {(['active', 'suspended', 'delinquent'] as OrganizationStatus[]).map((s) => (
+                              <button
+                                key={s}
+                                onClick={() => handleStatusChange(org, s)}
+                                className={`w-full text-left px-4 py-2 text-xs font-bold uppercase hover:bg-white/5 transition-colors ${s === status ? 'text-brand-gold' : 'text-on-surface-variant'}`}
+                              >
+                                {STATUS_LABEL[s]}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-5">
+                      <div className="flex items-center gap-2 text-[11px] text-on-surface-variant">
+                        <Calendar size={12} className="text-muted" />
+                        {org.createdAt ? new Date(org.createdAt).toLocaleDateString('pt-BR') : '—'}
+                      </div>
+                    </td>
+                    <td className="px-6 py-5 text-right">
+                      <button
+                        onClick={() => handleDelete(org)}
+                        disabled={deletingId === org.id}
+                        className="p-2 text-muted hover:text-brand-red transition-colors hover:bg-brand-red/10 rounded-lg disabled:opacity-50"
+                        title="Excluir"
+                      >
+                        {deletingId === org.id ? <MoreVertical size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

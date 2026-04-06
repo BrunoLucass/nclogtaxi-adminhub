@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { useAuth } from '@/context/AuthContext';
 import { loginErrorToDisplay } from '@/api/auth';
@@ -6,6 +7,7 @@ import { Eye, EyeOff, Route } from 'lucide-react';
 
 export function LoginPage() {
   const { login } = useAuth();
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -20,6 +22,8 @@ export function LoginPage() {
       const result = await login(email, password);
       if (result.ok === false) {
         setError(loginErrorToDisplay(result));
+      } else {
+        navigate('/', { replace: true });
       }
     } finally {
       setLoading(false);

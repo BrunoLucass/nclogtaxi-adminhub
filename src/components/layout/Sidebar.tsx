@@ -1,30 +1,27 @@
 import { motion } from 'motion/react';
+import { NavLink } from 'react-router-dom';
 import { Bell, ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { AuthUser } from '@/context/AuthContext';
 
-export type MenuItem = {
-  id: string;
+export type SidebarItem = {
+  path: string;
   label: string;
   icon: LucideIcon;
 };
 
 type SidebarProps = {
-  menuItems: MenuItem[];
-  activeTab: string;
+  items: SidebarItem[];
   isSidebarCollapsed: boolean;
   user: AuthUser | null;
-  onTabChange: (id: string) => void;
   onToggleCollapse: () => void;
   onLogout: () => void;
 };
 
 export function Sidebar({
-  menuItems,
-  activeTab,
+  items,
   isSidebarCollapsed,
   user,
-  onTabChange,
   onToggleCollapse,
   onLogout,
 }: SidebarProps) {
@@ -77,36 +74,43 @@ export function Sidebar({
 
         {/* Navigation */}
         <nav className="px-3 space-y-1.5 mt-6">
-          {menuItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => onTabChange(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all group relative ${
-                activeTab === item.id
-                  ? 'bg-brand-red text-white shadow-lg shadow-brand-red/20'
-                  : 'text-on-surface-variant hover:bg-white/5 hover:text-on-surface'
-              } ${isSidebarCollapsed ? 'justify-center' : ''}`}
+          {items.map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              end={item.path.endsWith('/admin') || item.path.endsWith('/client')}
+              className={({ isActive }) =>
+                `w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all group relative ${
+                  isActive
+                    ? 'bg-brand-red text-white shadow-lg shadow-brand-red/20'
+                    : 'text-on-surface-variant hover:bg-white/5 hover:text-on-surface'
+                } ${isSidebarCollapsed ? 'justify-center' : ''}`
+              }
             >
-              <item.icon
-                size={20}
-                className={activeTab === item.id ? 'text-white' : 'group-hover:text-brand-gold transition-colors'}
-              />
-              {!isSidebarCollapsed && (
-                <motion.span
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="text-[11px] font-semibold tracking-wide uppercase"
-                >
-                  {item.label}
-                </motion.span>
+              {({ isActive }) => (
+                <>
+                  <item.icon
+                    size={20}
+                    className={isActive ? 'text-white' : 'group-hover:text-brand-gold transition-colors'}
+                  />
+                  {!isSidebarCollapsed && (
+                    <motion.span
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="text-[11px] font-semibold tracking-wide uppercase"
+                    >
+                      {item.label}
+                    </motion.span>
+                  )}
+                  {isSidebarCollapsed && isActive && (
+                    <motion.div
+                      layoutId="active-pill"
+                      className="absolute left-0 w-1 h-6 bg-brand-gold rounded-r-full"
+                    />
+                  )}
+                </>
               )}
-              {isSidebarCollapsed && activeTab === item.id && (
-                <motion.div
-                  layoutId="active-pill"
-                  className="absolute left-0 w-1 h-6 bg-brand-gold rounded-r-full"
-                />
-              )}
-            </button>
+            </NavLink>
           ))}
         </nav>
       </div>
@@ -149,7 +153,7 @@ export function Sidebar({
                   className="flex flex-col overflow-hidden"
                 >
                   <span className="text-on-surface text-[11px] font-semibold truncate">{user?.name ?? '—'}</span>
-                  <span className="text-brand-gold/80 text-[8px] font-semibold uppercase tracking-widest truncate">{user?.role ?? '—'}</span>
+                  <span className="text-brand-gold/80 text-[8px] font-semibold uppercase tracking-widest truncate">{user?.roleLabel ?? '—'}</span>
                 </motion.div>
               )}
             </div>
