@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { ApiRequestError } from '@/api/client';
 import { listTrips } from '@/api/trips';
 import type { Pagination, Trip, TripFilters } from '@/types/api';
@@ -10,19 +10,20 @@ export function RidesPage() {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [pagination, setPagination] = useState<Pagination | null>(null);
   const [filters, setFilters] = useState<TripFilters>({ page: 1, limit: 50 });
+  const cancelledRef = useRef(false);
 
   const load = useCallback(async () => {
-    let cancelled = false;
+    cancelledRef.current = false;
     setLoading(true);
     setLoadError(null);
     try {
       const res = await listTrips(filters);
-      if (!cancelled) {
+      if (!cancelledRef.current) {
         setTrips(res.data);
         setPagination(res.pagination);
       }
     } catch (e) {
-      if (!cancelled) {
+      if (!cancelledRef.current) {
         const msg =
           e instanceof ApiRequestError
             ? `${e.message} (${e.status})`
@@ -32,13 +33,13 @@ export function RidesPage() {
         setLoadError(msg);
       }
     } finally {
-      if (!cancelled) setLoading(false);
+      if (!cancelledRef.current) setLoading(false);
     }
-    return () => { cancelled = true; };
   }, [filters]);
 
   useEffect(() => {
     load();
+    return () => { cancelledRef.current = true; };
   }, [load]);
 
   function handlePageChange(page: number) {

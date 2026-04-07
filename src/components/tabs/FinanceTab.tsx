@@ -2,21 +2,22 @@ import { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatBRLFromCents } from '@/lib/format';
 import { VoucherActionsModal } from '@/components/modals/VoucherActionsModal';
+import { Skeleton } from '@/components/ui/Skeleton';
 import type { Voucher, VoucherFilters } from '@/types/api';
 
 const statusStyle: Record<string, string> = {
-  open: 'bg-brand-gold/15 text-brand-gold',
-  closed: 'bg-green-400/15 text-green-400',
+  open:     'bg-primary/15 text-primary',
+  closed:   'bg-green-400/15 text-green-400',
   disputed: 'bg-red-400/15 text-red-400',
 };
 
 const statusLabel: Record<string, string> = {
-  open: 'Aberto',
-  closed: 'Fechado',
+  open:     'Aberto',
+  closed:   'Fechado',
   disputed: 'Disputado',
 };
 
-type FinanceTabProps = {
+type Props = {
   vouchers: Voucher[];
   loading: boolean;
   onVouchersChange: (vouchers: Voucher[]) => void;
@@ -28,17 +29,7 @@ type FinanceTabProps = {
   onFiltersChange?: (filters: VoucherFilters) => void;
 };
 
-export function FinanceTab({
-  vouchers,
-  loading,
-  onVouchersChange,
-  total,
-  page = 1,
-  limit = 50,
-  onPageChange,
-  filters,
-  onFiltersChange,
-}: FinanceTabProps) {
+export function FinanceTab({ vouchers, loading, onVouchersChange, total, page = 1, limit = 50, onPageChange, filters, onFiltersChange }: Props) {
   const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null);
 
   function handleUpdated(updated: Voucher) {
@@ -49,21 +40,14 @@ export function FinanceTab({
   const totalPages = Math.ceil(totalCount / limit);
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-on-surface font-headline text-3xl font-extrabold tracking-tight">Financeiro</h1>
-        <p className="text-on-surface-variant text-sm mt-1">
-          <code className="text-brand-gold/90">GET /vouchers</code> — clique em um voucher para fechar ou disputar
-        </p>
-      </div>
-
-      {/* Filters */}
+    <div className="max-w-7xl mx-auto space-y-5">
+      {/* Filters toolbar */}
       {onFiltersChange && (
-        <div className="bg-surface-container p-4 rounded-2xl border border-muted/20 flex flex-wrap gap-4 shadow-sm">
+        <div className="flex flex-wrap items-center gap-3">
           <select
             value={filters?.status ?? ''}
             onChange={(e) => onFiltersChange({ ...filters, status: e.target.value || undefined, page: 1 })}
-            className="bg-white/5 border border-muted/10 rounded-xl px-4 py-2.5 text-sm text-on-surface focus:border-brand-gold/50 outline-none"
+            className="h-9 bg-surface-container px-3 text-sm text-on-surface rounded-xl outline-none focus:ring-1 focus:ring-primary/30 transition-all"
           >
             <option value="">Todos os status</option>
             <option value="open">Aberto</option>
@@ -74,18 +58,18 @@ export function FinanceTab({
             type="date"
             value={filters?.startDate ?? ''}
             onChange={(e) => onFiltersChange({ ...filters, startDate: e.target.value || undefined, page: 1 })}
-            className="bg-white/5 border border-muted/10 rounded-xl px-4 py-2.5 text-sm text-on-surface focus:border-brand-gold/50 outline-none"
+            className="h-9 bg-surface-container px-3 text-sm text-on-surface rounded-xl outline-none focus:ring-1 focus:ring-primary/30 transition-all"
           />
           <input
             type="date"
             value={filters?.endDate ?? ''}
             onChange={(e) => onFiltersChange({ ...filters, endDate: e.target.value || undefined, page: 1 })}
-            className="bg-white/5 border border-muted/10 rounded-xl px-4 py-2.5 text-sm text-on-surface focus:border-brand-gold/50 outline-none"
+            className="h-9 bg-surface-container px-3 text-sm text-on-surface rounded-xl outline-none focus:ring-1 focus:ring-primary/30 transition-all"
           />
           {(filters?.status || filters?.startDate || filters?.endDate) && (
             <button
               onClick={() => onFiltersChange({ page: 1, limit: filters?.limit })}
-              className="text-xs text-muted hover:text-brand-gold transition-colors font-bold uppercase tracking-wider"
+              className="text-xs text-muted hover:text-primary transition-colors font-bold uppercase tracking-wider"
             >
               Limpar
             </button>
@@ -93,82 +77,75 @@ export function FinanceTab({
         </div>
       )}
 
-      <div className="bg-surface-container rounded-2xl border border-muted/20 overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-white/5 text-muted text-[10px] font-bold uppercase tracking-widest">
-                <th className="px-6 py-4">ID</th>
-                <th className="px-6 py-4">Corrida</th>
-                <th className="px-6 py-4">Valor</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4">Fechado em</th>
-                <th className="px-6 py-4">Criado em</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-muted/10">
-              {loading ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-10 text-center text-muted text-sm animate-pulse">
-                    Carregando...
-                  </td>
-                </tr>
-              ) : vouchers.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-10 text-center text-muted text-sm">
-                    Nenhum voucher encontrado.
-                  </td>
-                </tr>
-              ) : null}
-              {vouchers.map((v) => (
-                <tr
-                  key={v.id}
-                  onClick={() => setSelectedVoucher(v)}
-                  className="hover:bg-white/5 transition-colors cursor-pointer"
-                >
-                  <td className="px-6 py-4 text-[10px] font-mono text-muted truncate max-w-[100px]" title={v.id}>{v.id}</td>
-                  <td className="px-6 py-4 text-[10px] font-mono text-muted truncate max-w-[100px]" title={v.tripId ?? ''}>{v.tripId ?? '—'}</td>
-                  <td className="px-6 py-4 text-sm font-mono font-bold text-on-surface">{formatBRLFromCents(v.amountCents)}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${statusStyle[(v.status ?? '').toLowerCase()] ?? 'bg-muted/15 text-muted'}`}>
-                      {statusLabel[(v.status ?? '').toLowerCase()] ?? v.status ?? '—'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-[11px] text-muted">
-                    {v.closedAt ? new Date(v.closedAt).toLocaleString('pt-BR') : '—'}
-                  </td>
-                  <td className="px-6 py-4 text-[11px] text-muted">
-                    {v.createdAt ? new Date(v.createdAt).toLocaleString('pt-BR') : '—'}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* List */}
+      <div className="rounded-2xl overflow-hidden bg-surface-container-low">
+        {/* Header */}
+        <div className="grid grid-cols-[100px_100px_1fr_120px_140px_140px] items-center px-4 py-2.5 bg-surface-dim">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-muted">ID</span>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-muted">Corrida</span>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-muted">Valor</span>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-muted">Status</span>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-muted">Fechado em</span>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-muted">Criado em</span>
         </div>
 
-        {/* Footer */}
-        <div className="p-4 bg-white/5 border-t border-muted/20 flex items-center justify-between">
-          <span className="text-muted text-xs">{totalCount} voucher(s)</span>
-          {totalPages > 1 && onPageChange && (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => onPageChange(page - 1)}
-                disabled={page <= 1}
-                className="p-1.5 text-muted hover:text-on-surface disabled:opacity-30 transition-colors rounded-lg hover:bg-white/10"
-              >
-                <ChevronLeft size={14} />
-              </button>
-              <span className="text-xs text-on-surface-variant">{page} / {totalPages}</span>
-              <button
-                onClick={() => onPageChange(page + 1)}
-                disabled={page >= totalPages}
-                className="p-1.5 text-muted hover:text-on-surface disabled:opacity-30 transition-colors rounded-lg hover:bg-white/10"
-              >
-                <ChevronRight size={14} />
-              </button>
+        {/* Skeleton */}
+        {loading && Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="grid grid-cols-[100px_100px_1fr_120px_140px_140px] items-center gap-4 px-4 py-4 border-t border-surface-container">
+            <Skeleton className="h-3 w-16" />
+            <Skeleton className="h-3 w-16" />
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-6 w-16 rounded-full" />
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-3 w-24" />
+          </div>
+        ))}
+
+        {/* Empty */}
+        {!loading && vouchers.length === 0 && (
+          <div className="px-4 py-14 text-center text-muted text-sm border-t border-surface-container">
+            Nenhum voucher encontrado.
+          </div>
+        )}
+
+        {/* Rows */}
+        {!loading && vouchers.map((v) => {
+          const s = (v.status ?? '').toLowerCase();
+          return (
+            <div
+              key={v.id}
+              onClick={() => setSelectedVoucher(v)}
+              className="grid grid-cols-[100px_100px_1fr_120px_140px_140px] items-center px-4 py-4 border-t border-surface-container hover:bg-surface-container transition-colors cursor-pointer"
+            >
+              <span className="text-[10px] font-mono text-muted truncate" title={v.id}>{v.id.slice(0, 8)}…</span>
+              <span className="text-[10px] font-mono text-muted truncate" title={v.tripId ?? ''}>{v.tripId ? v.tripId.slice(0, 8) + '…' : '—'}</span>
+              <span className="text-sm font-mono font-bold text-on-surface">{formatBRLFromCents(v.amountCents)}</span>
+              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase w-fit ${statusStyle[s] ?? 'bg-muted/15 text-muted'}`}>
+                {statusLabel[s] ?? v.status ?? '—'}
+              </span>
+              <span className="text-[11px] text-muted">{v.closedAt ? new Date(v.closedAt).toLocaleString('pt-BR') : '—'}</span>
+              <span className="text-[11px] text-muted">{v.createdAt ? new Date(v.createdAt).toLocaleString('pt-BR') : '—'}</span>
             </div>
-          )}
-        </div>
+          );
+        })}
+
+        {/* Footer */}
+        {!loading && (
+          <div className="px-4 py-3 border-t border-surface-container flex items-center justify-between">
+            <span className="text-[11px] text-muted">{totalCount} voucher(s)</span>
+            {totalPages > 1 && onPageChange && (
+              <div className="flex items-center gap-1">
+                <button onClick={() => onPageChange(page - 1)} disabled={page <= 1} className="p-1.5 text-muted hover:text-on-surface disabled:opacity-30 transition-colors rounded-lg hover:bg-surface-container">
+                  <ChevronLeft size={14} />
+                </button>
+                <span className="text-xs text-on-surface-variant px-1">{page} / {totalPages}</span>
+                <button onClick={() => onPageChange(page + 1)} disabled={page >= totalPages} className="p-1.5 text-muted hover:text-on-surface disabled:opacity-30 transition-colors rounded-lg hover:bg-surface-container">
+                  <ChevronRight size={14} />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <VoucherActionsModal

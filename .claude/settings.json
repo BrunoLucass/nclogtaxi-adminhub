@@ -1,31 +1,15 @@
 {
   "extraKnownMarketplaces": {
-    "vercel-agent-skills": {
-      "source": {
-        "source": "github",
-        "repo": "vercel-labs/agent-skills"
-      },
-      "autoUpdate": true
-    },
-    "anthropic-skills": {
+    "anthropic-agent-skills": {
       "source": {
         "source": "github",
         "repo": "anthropics/skills"
       },
       "autoUpdate": true
-    },
-    "remotion-skills": {
-      "source": {
-        "source": "github",
-        "repo": "remotion-dev/skills"
-      },
-      "autoUpdate": true
     }
   },
   "enabledPlugins": {
-    "vercel-react-best-practices@vercel-agent-skills": true,
-    "frontend-design@anthropic-skills": true,
-    "web-design-guidelines@vercel-agent-skills": true,
-    "remotion-best-practices@remotion-skills": true
+    "example-skills@anthropic-agent-skills": true,
+    "claude-api@anthropic-agent-skills": true
   }
 }

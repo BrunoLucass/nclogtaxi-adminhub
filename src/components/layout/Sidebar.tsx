@@ -1,13 +1,16 @@
 import { motion } from 'motion/react';
 import { NavLink } from 'react-router-dom';
-import { Bell, ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
+import { ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { AuthUser } from '@/context/AuthContext';
+
+// ── Types ────────────────────────────────────────────────────────────────────
 
 export type SidebarItem = {
   path: string;
   label: string;
   icon: LucideIcon;
+  exact?: boolean;
 };
 
 type SidebarProps = {
@@ -18,171 +21,162 @@ type SidebarProps = {
   onLogout: () => void;
 };
 
-export function Sidebar({
-  items,
-  isSidebarCollapsed,
+// ── Sub-components ───────────────────────────────────────────────────────────
+
+function SidebarBrand({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
+  return (
+    <div className="h-16 px-3 flex items-center gap-2">
+      {/* Logo / wordmark */}
+      <div className={`flex items-center gap-2.5 min-w-0 flex-1 ${collapsed ? 'justify-center' : ''}`}>
+        <img
+          src="/nclog-logo.png"
+          alt="NCLOG"
+          className="h-7 w-auto object-contain mix-blend-lighten shrink-0"
+          decoding="async"
+        />
+        {!collapsed && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex items-center leading-none tracking-tight truncate"
+          >
+            <span className="font-headline font-bold text-sm text-on-surface">NCLOG</span>
+            <span className="font-headline font-bold text-sm text-primary ml-1">TÁXI</span>
+          </motion.div>
+        )}
+      </div>
+
+      {/* Toggle — always in normal flow, never absolute */}
+      <button
+        onClick={onToggle}
+        aria-label={collapsed ? 'Expandir menu' : 'Recolher menu'}
+        className="shrink-0 p-1.5 text-muted hover:text-on-surface hover:bg-surface-container transition-colors rounded-lg"
+      >
+        {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+      </button>
+    </div>
+  );
+}
+
+function SidebarNav({ items, collapsed }: { items: SidebarItem[]; collapsed: boolean }) {
+  return (
+    <nav className="px-3 space-y-0.5 mt-4" aria-label="Menu principal">
+      {items.map((item) => (
+        <NavLink
+          key={item.path}
+          to={item.path}
+          end={item.exact}
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group ${
+              isActive
+                ? 'bg-surface-container-high text-on-surface'
+                : 'text-muted hover:text-on-surface-variant hover:bg-surface-container'
+            } ${collapsed ? 'justify-center' : ''}`
+          }
+        >
+          {({ isActive }) => (
+            <>
+              <item.icon
+                size={18}
+                className={`shrink-0 ${isActive ? 'text-primary' : 'group-hover:text-on-surface-variant transition-colors'}`}
+              />
+              {!collapsed && (
+                <motion.span
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className={`text-[11px] font-semibold tracking-wide truncate ${isActive ? 'text-on-surface' : ''}`}
+                >
+                  {item.label}
+                </motion.span>
+              )}
+              {collapsed && isActive && (
+                <motion.div
+                  layoutId="active-indicator"
+                  className="absolute left-0 w-0.5 h-5 bg-primary rounded-r-full"
+                />
+              )}
+            </>
+          )}
+        </NavLink>
+      ))}
+    </nav>
+  );
+}
+
+function SidebarUser({
   user,
-  onToggleCollapse,
+  collapsed,
   onLogout,
-}: SidebarProps) {
+}: {
+  user: AuthUser | null;
+  collapsed: boolean;
+  onLogout: () => void;
+}) {
+  return (
+    <div className={`px-3 ${collapsed ? 'flex flex-col items-center gap-3' : ''}`}>
+      {/* User row */}
+      <div className={`flex items-center ${collapsed ? 'flex-col gap-3' : 'gap-3 px-2 py-2'}`}>
+        {/* Avatar */}
+        <div className="relative shrink-0">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-brand-red to-primary flex items-center justify-center text-surface font-bold text-[10px]">
+            {user?.initials ?? '??'}
+          </div>
+          <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-green-500 border border-surface-dim rounded-full" />
+        </div>
+
+        {!collapsed && (
+          <div className="flex-1 min-w-0">
+            <p className="text-[11px] font-semibold text-on-surface truncate">{user?.name ?? '—'}</p>
+            <p className="text-[9px] font-bold uppercase tracking-widest text-primary/70 truncate">{user?.roleLabel ?? '—'}</p>
+          </div>
+        )}
+
+        {/* Logout */}
+        <button
+          onClick={onLogout}
+          aria-label="Sair"
+          title="Sair"
+          className="p-1.5 text-muted hover:text-brand-red transition-colors rounded-lg hover:bg-brand-red/10 shrink-0"
+        >
+          <LogOut size={14} />
+        </button>
+      </div>
+
+      {/* Brand footer */}
+      {!collapsed && (
+        <p className="text-[9px] text-muted/30 text-center tracking-wide mt-3 select-none">
+          © NCLOG Tecnologia 2026
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ── Sidebar ──────────────────────────────────────────────────────────────────
+
+export function Sidebar({ items, isSidebarCollapsed, user, onToggleCollapse, onLogout }: SidebarProps) {
   return (
     <motion.aside
       initial={false}
-      animate={{ width: isSidebarCollapsed ? 80 : 280 }}
-      className="bg-surface-container border-r border-white/5 flex flex-col justify-between pb-6 relative z-30 shadow-2xl"
+      animate={{ width: isSidebarCollapsed ? 64 : 240 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+      className="bg-surface-dim flex flex-col justify-between pb-5 relative z-30 overflow-hidden shrink-0"
     >
-      <div>
-        {/* Logo & Toggle */}
-        <div className={`h-16 px-4 flex items-center relative ${isSidebarCollapsed ? 'justify-center' : 'justify-between'}`}>
-          {!isSidebarCollapsed && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex items-center gap-2.5"
-            >
-              <img
-                src="/nclog-logo.png"
-                alt="NCLOG"
-                className="h-8 w-auto object-contain mix-blend-lighten"
-                decoding="async"
-              />
-              <div className="flex items-center tracking-tight leading-none">
-                <span className="text-on-surface font-headline font-bold text-base">NCLOG</span>
-                <span className="text-brand-gold font-headline font-bold text-base ml-1">TÁXI</span>
-              </div>
-            </motion.div>
-          )}
-          {isSidebarCollapsed && (
-            <img
-              src="/nclog-logo.png"
-              alt="NCLOG"
-              className="h-8 w-auto object-contain mix-blend-lighten"
-              decoding="async"
-            />
-          )}
-          <button
-            onClick={onToggleCollapse}
-            className={`p-1.5 text-muted hover:text-brand-gold transition-colors border border-white/10 rounded-lg hover:bg-white/5 ${isSidebarCollapsed ? 'absolute -right-3 top-1/2 -translate-y-1/2 bg-surface-container shadow-md' : ''}`}
-          >
-            {isSidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-          </button>
-        </div>
+      <div className="flex flex-col gap-0 min-h-0 flex-1">
+        <SidebarBrand collapsed={isSidebarCollapsed} onToggle={onToggleCollapse} />
 
-        <div className="px-6">
-          <div className="h-px bg-white/5 w-full" />
-        </div>
+        {/* Separator via color shift — no border */}
+        <div className="mx-3 h-px bg-surface-container shrink-0" />
 
-        {/* Navigation */}
-        <nav className="px-3 space-y-1.5 mt-6">
-          {items.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              end={item.path.endsWith('/admin') || item.path.endsWith('/client')}
-              className={({ isActive }) =>
-                `w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all group relative ${
-                  isActive
-                    ? 'bg-brand-red text-white shadow-lg shadow-brand-red/20'
-                    : 'text-on-surface-variant hover:bg-white/5 hover:text-on-surface'
-                } ${isSidebarCollapsed ? 'justify-center' : ''}`
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <item.icon
-                    size={20}
-                    className={isActive ? 'text-white' : 'group-hover:text-brand-gold transition-colors'}
-                  />
-                  {!isSidebarCollapsed && (
-                    <motion.span
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className="text-[11px] font-semibold tracking-wide uppercase"
-                    >
-                      {item.label}
-                    </motion.span>
-                  )}
-                  {isSidebarCollapsed && isActive && (
-                    <motion.div
-                      layoutId="active-pill"
-                      className="absolute left-0 w-1 h-6 bg-brand-gold rounded-r-full"
-                    />
-                  )}
-                </>
-              )}
-            </NavLink>
-          ))}
-        </nav>
-      </div>
-
-      {/* Bell + User + Logout */}
-      <div className="px-3 space-y-3">
-        {/* Notification Bell */}
-        <div className={`flex ${isSidebarCollapsed ? 'justify-center' : 'px-1'}`}>
-          <button className="relative p-2 text-muted hover:text-on-surface transition-colors bg-white/5 rounded-xl border border-white/5 hover:border-muted/20 hover:bg-white/10">
-            <Bell size={18} />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-brand-red rounded-full border-2 border-surface-container" />
-          </button>
-          {!isSidebarCollapsed && (
-            <motion.span
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="ml-3 self-center text-[11px] font-semibold text-muted uppercase tracking-wide"
-            >
-              Notificações
-            </motion.span>
-          )}
-        </div>
-
-        <div className="h-px bg-white/5 mx-2" />
-
-        {/* User card */}
-        <div className={`relative overflow-hidden rounded-2xl p-3 transition-all ${isSidebarCollapsed ? 'flex flex-col items-center gap-4' : 'bg-white/5 backdrop-blur-md border border-white/10 shadow-xl'}`}>
-          <div className="flex items-center justify-between relative z-10">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-brand-red to-brand-gold flex items-center justify-center text-white font-bold text-xs shadow-inner">
-                  {user?.initials ?? '??'}
-                </div>
-                <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 border-2 border-surface-container rounded-full shadow-sm" />
-              </div>
-              {!isSidebarCollapsed && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="flex flex-col overflow-hidden"
-                >
-                  <span className="text-on-surface text-[11px] font-semibold truncate">{user?.name ?? '—'}</span>
-                  <span className="text-brand-gold/80 text-[8px] font-semibold uppercase tracking-widest truncate">{user?.roleLabel ?? '—'}</span>
-                </motion.div>
-              )}
-            </div>
-
-            {!isSidebarCollapsed && (
-              <button
-                onClick={onLogout}
-                className="p-2 text-on-surface-variant hover:text-brand-red transition-colors rounded-lg hover:bg-brand-red/10"
-                title="Sair"
-              >
-                <LogOut size={16} />
-              </button>
-            )}
-          </div>
-
-          {isSidebarCollapsed && (
-            <button
-              onClick={onLogout}
-              className="p-2 text-on-surface-variant hover:text-brand-red transition-colors rounded-lg hover:bg-brand-red/10"
-            >
-              <LogOut size={20} />
-            </button>
-          )}
-
-          {!isSidebarCollapsed && (
-            <div className="absolute top-0 right-0 w-24 h-24 bg-brand-gold/5 rounded-full blur-2xl -mr-12 -mt-12" />
-          )}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden py-2">
+          <SidebarNav items={items} collapsed={isSidebarCollapsed} />
         </div>
       </div>
+
+      {/* Separator */}
+      <div className="mx-3 h-px bg-surface-container mb-4 shrink-0" />
+
+      <SidebarUser user={user} collapsed={isSidebarCollapsed} onLogout={onLogout} />
     </motion.aside>
   );
 }

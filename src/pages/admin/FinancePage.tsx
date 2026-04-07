@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { ApiRequestError } from '@/api/client';
 import { listVouchers } from '@/api/vouchers';
 import type { Voucher, VoucherFilters } from '@/types/api';
@@ -10,19 +10,20 @@ export function FinancePage() {
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [total, setTotal] = useState(0);
   const [filters, setFilters] = useState<VoucherFilters>({ page: 1, limit: 50 });
+  const cancelledRef = useRef(false);
 
   const load = useCallback(async () => {
-    let cancelled = false;
+    cancelledRef.current = false;
     setLoading(true);
     setLoadError(null);
     try {
       const res = await listVouchers(filters);
-      if (!cancelled) {
+      if (!cancelledRef.current) {
         setVouchers(res.data);
         setTotal(res.total);
       }
     } catch (e) {
-      if (!cancelled) {
+      if (!cancelledRef.current) {
         const msg =
           e instanceof ApiRequestError
             ? `${e.message} (${e.status})`
@@ -32,13 +33,13 @@ export function FinancePage() {
         setLoadError(msg);
       }
     } finally {
-      if (!cancelled) setLoading(false);
+      if (!cancelledRef.current) setLoading(false);
     }
-    return () => { cancelled = true; };
   }, [filters]);
 
   useEffect(() => {
     load();
+    return () => { cancelledRef.current = true; };
   }, [load]);
 
   function handlePageChange(page: number) {

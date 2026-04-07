@@ -35,6 +35,9 @@ export function Modal({ open, title, onClose, children, maxWidth = 'max-w-md' }:
 
           {/* Panel */}
           <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modal-title"
             initial={{ opacity: 0, scale: 0.96, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 12 }}
@@ -43,9 +46,10 @@ export function Modal({ open, title, onClose, children, maxWidth = 'max-w-md' }:
           >
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
-              <h2 className="text-on-surface font-headline font-extrabold text-base tracking-tight">{title}</h2>
+              <h2 id="modal-title" className="text-on-surface font-headline font-extrabold text-base tracking-tight">{title}</h2>
               <button
                 onClick={onClose}
+                aria-label="Fechar"
                 className="p-1.5 text-muted hover:text-on-surface hover:bg-white/5 rounded-lg transition-colors"
               >
                 <X size={18} />

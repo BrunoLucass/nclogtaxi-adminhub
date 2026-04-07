@@ -1,16 +1,17 @@
 import { useState } from 'react';
-import { Plus, Trash2, MoreVertical } from 'lucide-react';
+import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { deleteDriver } from '@/api/drivers';
 import { CreateDriverModal } from '@/components/modals/CreateDriverModal';
+import { Skeleton } from '@/components/ui/Skeleton';
 import type { Driver } from '@/types/api';
 
-type DriversTabProps = {
+type Props = {
   drivers: Driver[];
   loading: boolean;
   onDriversChange: (drivers: Driver[]) => void;
 };
 
-export function DriversTab({ drivers, loading, onDriversChange }: DriversTabProps) {
+export function DriversTab({ drivers, loading, onDriversChange }: Props) {
   const [showCreate, setShowCreate] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -26,81 +27,103 @@ export function DriversTab({ drivers, loading, onDriversChange }: DriversTabProp
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-on-surface font-headline text-3xl font-extrabold tracking-tight">Motoristas</h1>
-          <p className="text-on-surface-variant text-sm mt-1">
-            Fila e cadastro — <code className="text-brand-gold/90">GET /drivers</code>
-          </p>
-        </div>
+    <div className="max-w-7xl mx-auto space-y-5">
+      {/* Toolbar */}
+      <div className="flex items-center">
         <button
           onClick={() => setShowCreate(true)}
-          className="bg-brand-red hover:bg-brand-maroon text-white px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest flex items-center gap-2 transition-all shadow-lg shadow-brand-red/20 active:scale-95"
+          className="ml-auto flex items-center gap-2 h-9 px-4 bg-brand-red hover:bg-brand-maroon text-white text-xs font-bold uppercase tracking-widest rounded-xl transition-all active:scale-95 shadow-lg shadow-brand-red/20"
         >
-          <Plus size={16} /> Novo Motorista
+          <Plus size={14} /> Novo Motorista
         </button>
       </div>
 
-      <div className="bg-surface-container rounded-2xl border border-muted/20 overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-white/5 text-muted text-[10px] font-bold uppercase tracking-widest">
-                <th className="px-6 py-4">Nome</th>
-                <th className="px-6 py-4">Telefone</th>
-                <th className="px-6 py-4">Disponível</th>
-                <th className="px-6 py-4">Fila</th>
-                <th className="px-6 py-4">ID</th>
-                <th className="px-6 py-4 text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-muted/10">
-              {drivers.length === 0 && !loading ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-10 text-center text-muted text-sm">
-                    Nenhum motorista cadastrado.
-                  </td>
-                </tr>
-              ) : null}
-              {drivers.map((d) => (
-                <tr key={d.id} className="hover:bg-white/5">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-brand-red/30 to-brand-gold/30 flex items-center justify-center text-[10px] font-bold text-on-surface border border-white/10">
-                        {d.name.split(' ').slice(0, 2).map((n) => n[0]).join('').toUpperCase()}
-                      </div>
-                      <span className="text-on-surface text-sm font-bold">{d.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-on-surface-variant text-sm">{d.phone ?? '—'}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${d.isAvailable ? 'bg-green-400/15 text-green-400' : 'bg-muted/15 text-muted'}`}>
-                      {d.isAvailable ? 'Sim' : 'Não'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-on-surface-variant text-sm">
-                    {d.queuePosition != null ? `#${d.queuePosition}` : '—'}
-                  </td>
-                  <td className="px-6 py-4 text-[10px] font-mono text-muted truncate max-w-[160px]">{d.id}</td>
-                  <td className="px-6 py-4 text-right">
-                    <button
-                      onClick={() => handleDelete(d)}
-                      disabled={deletingId === d.id}
-                      className="p-2 text-muted hover:text-brand-red transition-colors hover:bg-brand-red/10 rounded-lg disabled:opacity-50"
-                      title="Excluir"
-                    >
-                      {deletingId === d.id ? <MoreVertical size={16} className="animate-spin" /> : <Trash2 size={16} />}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* List */}
+      <div className="rounded-2xl overflow-hidden bg-surface-container-low">
+        {/* Header */}
+        <div className="grid grid-cols-[1fr_140px_100px_80px_1fr_40px] items-center px-4 py-2.5 bg-surface-dim">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-muted">Motorista</span>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-muted">Telefone</span>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-muted">Disponível</span>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-muted">Fila</span>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-muted">ID</span>
+          <span />
         </div>
-        <div className="p-4 bg-white/5 border-t border-muted/20">
-          <span className="text-muted text-xs">{drivers.length} motorista(s)</span>
-        </div>
+
+        {/* Skeleton */}
+        {loading && Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="grid grid-cols-[1fr_140px_100px_80px_1fr_40px] items-center gap-4 px-4 py-4 border-t border-surface-container">
+            <div className="flex items-center gap-3">
+              <Skeleton className="w-8 h-8 rounded-full shrink-0" />
+              <Skeleton className="h-3.5 w-28" />
+            </div>
+            <Skeleton className="h-3.5 w-24" />
+            <Skeleton className="h-6 w-12 rounded-full" />
+            <Skeleton className="h-3.5 w-8" />
+            <Skeleton className="h-3 w-32" />
+            <Skeleton className="w-7 h-7 rounded-lg" />
+          </div>
+        ))}
+
+        {/* Empty */}
+        {!loading && drivers.length === 0 && (
+          <div className="px-4 py-14 text-center text-muted text-sm border-t border-surface-container">
+            Nenhum motorista cadastrado.
+          </div>
+        )}
+
+        {/* Rows */}
+        {!loading && drivers.map((d) => {
+          const initials = d.name.split(' ').slice(0, 2).map((n) => n[0]).join('').toUpperCase();
+          return (
+            <div
+              key={d.id}
+              className="grid grid-cols-[1fr_140px_100px_80px_1fr_40px] items-center px-4 py-4 border-t border-surface-container hover:bg-surface-container transition-colors"
+            >
+              {/* Name */}
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-brand-red/30 to-primary/30 flex items-center justify-center text-[10px] font-bold text-on-surface shrink-0">
+                  {initials}
+                </div>
+                <span className="text-sm font-semibold text-on-surface truncate">{d.name}</span>
+              </div>
+
+              {/* Phone */}
+              <span className="text-sm text-on-surface-variant">{d.phone ?? '—'}</span>
+
+              {/* Available */}
+              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase w-fit ${d.isAvailable ? 'bg-green-400/15 text-green-400' : 'bg-muted/15 text-muted'}`}>
+                {d.isAvailable ? 'Sim' : 'Não'}
+              </span>
+
+              {/* Queue */}
+              <span className="text-sm text-on-surface-variant">
+                {d.queuePosition != null ? `#${d.queuePosition}` : '—'}
+              </span>
+
+              {/* ID */}
+              <span className="text-[10px] font-mono text-muted truncate">{d.id}</span>
+
+              {/* Delete */}
+              <button
+                onClick={() => handleDelete(d)}
+                disabled={deletingId === d.id}
+                aria-label={`Excluir ${d.name}`}
+                className="flex items-center justify-center w-7 h-7 text-muted hover:text-brand-red hover:bg-brand-red/10 rounded-lg transition-colors disabled:opacity-40"
+              >
+                {deletingId === d.id
+                  ? <Loader2 size={14} className="animate-spin" />
+                  : <Trash2 size={14} />}
+              </button>
+            </div>
+          );
+        })}
+
+        {!loading && (
+          <div className="px-4 py-3 border-t border-surface-container">
+            <span className="text-[11px] text-muted">{drivers.length} motorista(s)</span>
+          </div>
+        )}
       </div>
 
       <CreateDriverModal
